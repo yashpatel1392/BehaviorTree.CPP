@@ -2,9 +2,9 @@ clone_depth: 5
 
 environment:
   matrix:
-    - GENERATOR : "MinGW Makefiles"
-      PLATFORM: x64
-    - GENERATOR : "Visual Studio 15 2017 Win64"
+    - COMPILER: MinGW
+      PLATFORM: Win32
+    - COMPILER: MSVC15
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PLATFORM: x64
 
@@ -13,12 +13,13 @@ configuration:
   - Release
 
 install:
-  - set PATH=C:\MinGW\bin;C:\MinGW\msys\1.0;%PATH%
+  - if [%COMPILER%]==[MinGW] set PATH=C:\MinGW\bin;%PATH%
 
 before_build:
   - mkdir build
   - cd build
-  - cmake "-G%GENERATOR%" -DCMAKE_IGNORE_PATH="C:/Program Files/Git/usr/bin" ..
+  - if [%COMPILER%]==[MSVC15] cmake -G "Visual Studio 14 2015 Win64" ..
+  - if [%COMPILER%]==[MinGW]  cmake -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH="C:\MinGW" -DCMAKE_IGNORE_PATH="C:\Program Files\Git\usr\bin" ..
 
 build_script:
 - cmake --build .

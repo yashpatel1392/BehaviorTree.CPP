@@ -4,6 +4,7 @@ environment:
   matrix:
     - COMPILER: MinGW-w64
       PLATFORM: x64
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     - COMPILER: MSVC15
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PLATFORM: x64

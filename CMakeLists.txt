@@ -12,9 +12,8 @@ if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
-if( MINGW )
-    add_definitions(-DBT_NO_COROUTINES)
-endif()
+
+#add_definitions(-DBT_NO_COROUTINES)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 

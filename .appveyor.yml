@@ -19,7 +19,7 @@ install:
 before_build:
   - mkdir build
   - cd build
-  - if [%COMPILER%]==[MSVC15]    cmake -G "Visual Studio 14 2015 Win64" ..
+  - if [%COMPILER%]==[MSVC15]    cmake -G "Visual Studio 15 2017 Win64" ..
   - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH="C:\mingw-w64" -DCMAKE_IGNORE_PATH="C:\Program Files\Git\usr\bin" ..
 
 build_script:

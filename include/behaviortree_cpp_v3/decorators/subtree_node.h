@@ -38,10 +38,10 @@ class SubtreeNode : public DecoratorNode
     <BehaviorTree ID="MainTree">
         <Sequence>
 
-        <SetBlackboard value="Hello" output_key="myParam" />
+        <SetBlackboard value="Hello World" output_key="myParam" />
         <SubTreePlus ID="Talk" param="{myParam}" />
 
-        <SubTreePlus ID="Talk" param="World" />
+        <SubTreePlus ID="Talk" param="Listen to me" />
 
         <SetBlackboard value="Auto remapped" output_key="param" />
         <SubTreePlus ID="Talk" __autoremap="1"  />
@@ -56,14 +56,14 @@ class SubtreeNode : public DecoratorNode
 
  * You may notice three different approaches to remapping:
  *
- * 1) Subtree: "{param}"  -> Parent: "{myParam}" -> Value: "Hello"
+ * 1) Subtree: "{param}"  -> Parent: "{myParam}" -> Value: "Hello World"
  *    Classical remapping from one port to another, but you need to use the syntax
  *    {myParam} to say that you are remapping the another port.
  *
- * 2) Subtree: "{param}" -> Value: "World"
+ * 2) Subtree: "{param}" -> Value: "Listen to me"
  *    syntax without {}, in this case param directly point to the string "World".
  *
- * 3) Subtree: "{param}" -> Parent: "{parent}"
+ * 3) Subtree: "{param}" -> Parent: "{parent}" -> Value: "Auto remapped"
  *    Setting to true (or 1) the attribute "__autoremap", we are automatically remapping
  *    each port. Usefull to avoid some boilerplate.
 

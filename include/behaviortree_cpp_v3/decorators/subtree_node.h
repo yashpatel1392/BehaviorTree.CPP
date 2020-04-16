@@ -65,7 +65,7 @@ class SubtreeNode : public DecoratorNode
  *
  * 3) Subtree: "{param}" -> Parent: "{parent}" -> Value: "Auto remapped"
  *    Setting to true (or 1) the attribute "__autoremap", we are automatically remapping
- *    each port. Usefull to avoid some boilerplate.
+ *    each port. Usefull to avoid some boilerplate. "__autoremap" is false by default.
 
  */
 class SubtreePlusNode : public DecoratorNode

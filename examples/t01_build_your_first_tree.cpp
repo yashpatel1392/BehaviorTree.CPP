@@ -82,15 +82,30 @@ int main()
     // The tick is propagated to the children based on the logic of the tree.
     // In this case, the entire sequence is executed, because all the children
     // of the Sequence return SUCCESS.
-    tree.tickRoot();
+//    tree.root_node->executeTick();
+    const std::string name_to_find = "open_gripper";
+    auto name_checker = [&name_to_find](const TreeNode* node) -> bool {
 
+        if (node->name().compare(name_to_find) == 0)
+        {
+            std::cout<<"Found it: "<<node->name()<<std::endl;
+            return true;
+        }
+        else
+        {
+            std::cout<< node->name() <<std::endl;
+            return false;
+        }
+    };
+
+    findTreeNodeRecursively(0, tree.root_node, name_checker);
     return 0;
 }
+
 
 /* Expected output:
 *
        [ Battery: OK ]
        GripperInterface::open
        ApproachObject: approach_object
-       GripperInterface::close
-*/
+ */

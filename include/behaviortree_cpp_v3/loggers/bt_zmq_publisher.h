@@ -13,10 +13,7 @@ class PublisherZMQ : public StatusChangeLogger
     static std::atomic<bool> ref_count;
 
   public:
-    PublisherZMQ(const BT::Tree& tree,
-                 unsigned max_msg_per_second = 25,
-                 unsigned publisher_port = 1666,
-                 unsigned server_port = 1667);
+    PublisherZMQ(const BT::Tree& tree, int max_msg_per_second = 25);
 
     virtual ~PublisherZMQ();
 

@@ -82,9 +82,6 @@ template <>
 unsigned convertFromString<unsigned>(StringView str);
 
 template <>
-long convertFromString<long>(StringView str);
-
-template <>
 double convertFromString<double>(StringView str);
 
 template <> // Integer numbers separated by the characted ";"
@@ -259,10 +256,10 @@ std::pair<std::string,PortInfo> CreatePort(PortDirection direction,
 
     if( std::is_same<T, void>::value)
     {
-        out = {static_cast<std::string>(name), PortInfo(direction) };
+        out = {name.to_string(), PortInfo(direction) };
     }
     else{
-        out =  {static_cast<std::string>(name), PortInfo(direction, typeid(T),
+        out =  {name.to_string(), PortInfo(direction, typeid(T),
                                           GetAnyFromStringFunctor<T>() ) };
     }
     if( !description.empty() )
@@ -295,6 +292,14 @@ template <typename T = void> inline
     std::pair<std::string,PortInfo> InputPort(StringView name, const T& default_value, StringView description)
 {
     auto out = CreatePort<T>(PortDirection::INPUT, name, description );
+    out.second.setDefaultValue( BT::toStr(default_value) );
+    return out;
+}
+
+template <typename T = void> inline
+    std::pair<std::string,PortInfo> OutputPort(StringView name, const T& default_value, StringView description)
+{
+    auto out = CreatePort<T>(PortDirection::OUTPUT, name, description );
     out.second.setDefaultValue( BT::toStr(default_value) );
     return out;
 }

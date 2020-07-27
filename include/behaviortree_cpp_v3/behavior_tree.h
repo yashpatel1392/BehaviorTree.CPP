@@ -1,5 +1,5 @@
 /* Copyright (C) 2015-2018 Michele Colledanchise -  All Rights Reserved
- * Copyright (C) 2018-2020 Davide Faconti, Eurecat -  All Rights Reserved
+ * Copyright (C) 2018-2019 Davide Faconti, Eurecat -  All Rights Reserved
 *
 *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 *   to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -20,10 +20,6 @@
 #include "behaviortree_cpp_v3/controls/fallback_node.h"
 #include "behaviortree_cpp_v3/controls/sequence_node.h"
 #include "behaviortree_cpp_v3/controls/sequence_star_node.h"
-#include "behaviortree_cpp_v3/controls/switch_node.h"
-#include "behaviortree_cpp_v3/controls/manual_node.h"
-#include "behaviortree_cpp_v3/controls/if_then_else_node.h"
-#include "behaviortree_cpp_v3/controls/while_do_else_node.h"
 
 #include "behaviortree_cpp_v3/action_node.h"
 #include "behaviortree_cpp_v3/condition_node.h"
@@ -39,13 +35,17 @@
 
 #include "behaviortree_cpp_v3/decorators/force_success_node.h"
 #include "behaviortree_cpp_v3/decorators/force_failure_node.h"
-#include "behaviortree_cpp_v3/decorators/keep_running_until_failure_node.h"
 #include "behaviortree_cpp_v3/decorators/blackboard_precondition.h"
 #include "behaviortree_cpp_v3/decorators/timeout_node.h"
 
-
 namespace BT
 {
+
+//Call the visitor for each node of the tree, given a root. If visitor returns true, stop visiting its descendants if any.
+void applyRecursiveVisitorSelectively(const TreeNode* node, const std::function<bool(const TreeNode*)>& visitor);
+
+//Call the visitor for each node of the tree, given a root. If visitor returns true, stop visiting its descendants if any.
+void applyRecursiveVisitorSelectively(TreeNode* node, const std::function<bool(TreeNode*)>& visitor);
 
 //Call the visitor for each node of the tree, given a root.
 void applyRecursiveVisitor(const TreeNode* root_node,
@@ -58,6 +58,11 @@ void applyRecursiveVisitor(TreeNode* root_node, const std::function<void(TreeNod
  * Debug function to print on screen the hierarchy of the tree.
  */
 void printTreeRecursively(const TreeNode* root_node);
+void findTreeNodeRecursively(unsigned indent, const TreeNode* node, const std::function<bool(const TreeNode*)>& name_checker);
+/// Invoke AsyncActionNode::stopAndJoinThread() to the entire tree,
+/// when needed.
+void haltAllActions(TreeNode* root_node);
+
 
 typedef std::vector<std::pair<uint16_t, uint8_t>> SerializedTreeStatus;
 
@@ -73,15 +78,14 @@ void buildSerializedStatusSnapshot(const TreeNode* root_node,
                                    SerializedTreeStatus& serialized_buffer);
 
 /// Simple way to extract the type of a TreeNode at COMPILE TIME.
-/// Useful to avoid the cost of dynamic_cast or the virtual method TreeNode::type().
+/// Useful to avoid the cost of without dynamic_cast or the virtual method TreeNode::type().
 template <typename T>
 inline NodeType getType()
 {
     // clang-format off
     if( std::is_base_of<ActionNodeBase, T>::value )        return NodeType::ACTION;
     if( std::is_base_of<ConditionNode, T>::value )         return NodeType::CONDITION;
-    if( std::is_base_of<SubtreeNode, T>::value )           return NodeType::SUBTREE;
-    if( std::is_base_of<SubtreePlusNode, T>::value )       return NodeType::SUBTREE;
+    if( std::is_base_of<DecoratorSubtreeNode, T>::value )  return NodeType::SUBTREE;
     if( std::is_base_of<DecoratorNode, T>::value )         return NodeType::DECORATOR;
     if( std::is_base_of<ControlNode, T>::value )           return NodeType::CONTROL;
     return NodeType::UNDEFINED;

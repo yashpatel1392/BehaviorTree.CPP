@@ -31,13 +31,6 @@ class SimpleString
     {
     }
 
-    SimpleString& operator = (const SimpleString& other)
-    {
-      _data = other._data;
-      _size = other._size;
-      return *this;
-    }
-
     ~SimpleString()
     {
         if ( _size >= sizeof(void*) && _data.ptr )

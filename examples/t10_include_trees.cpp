@@ -19,9 +19,9 @@ int main(int argc, char** argv)
     // all the TreeNodes are destroyed
     auto tree = factory.createTreeFromFile(argv[1]);
 
-    printTreeRecursively( tree.rootNode() );
+    printTreeRecursively( tree.root_node );
 
-    tree.tickRoot();
+    tree.root_node->executeTick();
 
     return 0;
 }

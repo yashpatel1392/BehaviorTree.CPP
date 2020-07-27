@@ -16,7 +16,7 @@ class Parser
   public:
     Parser() = default;
 
-    virtual ~Parser() = default;
+    ~Parser() = default;
 
     Parser(const Parser& other) = delete;
     Parser& operator=(const Parser& other) = delete;

@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Davide Faconti, Eurecat -  All Rights Reserved
+/* Copyright (C) 2019 Davide Faconti, Eurecat -  All Rights Reserved
 *
 *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 *   to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -28,10 +28,7 @@ NodeStatus ReactiveFallback::tick()
         {
             case NodeStatus::RUNNING:
             {
-                for(size_t i=index+1; i < childrenCount(); i++)
-                {
-                    haltChild(i);
-                }
+                haltChildren(index+1);
                 return NodeStatus::RUNNING;
             }
 
@@ -42,7 +39,7 @@ NodeStatus ReactiveFallback::tick()
 
             case NodeStatus::SUCCESS:
             {
-                haltChildren();
+                haltChildren(0);
                 return NodeStatus::SUCCESS;
             }
 
@@ -55,7 +52,7 @@ NodeStatus ReactiveFallback::tick()
 
     if( failure_count == childrenCount() )
     {
-        haltChildren();
+        haltChildren(0);
         return NodeStatus::FAILURE;
     }
 

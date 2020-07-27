@@ -1,4 +1,4 @@
-/*  Copyright (C) 2018-2020 Davide Faconti, Eurecat -  All Rights Reserved
+/*  Copyright (C) 2018-2019 Davide Faconti, Eurecat -  All Rights Reserved
 *
 *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 *   to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -15,12 +15,62 @@
 
 namespace BT
 {
+
+void applyRecursiveVisitorSelectively(const TreeNode* node, const std::function<bool(const TreeNode*)>& visitor)
+{
+    if (!node)
+    {
+        throw LogicError("One of the children of a DecoratorNode or ControlNode is nulltr");
+    }
+
+    if(visitor(node)) {
+        return;
+    }
+
+    if (auto control = dynamic_cast<const BT::ControlNode*>(node))
+    {
+        for (const auto& child : control->children())
+        {
+            applyRecursiveVisitorSelectively(static_cast<const TreeNode*>(child), visitor);
+        }
+    }
+    else if (auto decorator = dynamic_cast<const BT::DecoratorNode*>(node))
+    {
+        applyRecursiveVisitorSelectively(decorator->child(), visitor);
+    }
+}
+
+void applyRecursiveVisitorSelectively(TreeNode* node, const std::function<bool(TreeNode*)>& visitor)
+{
+    if (!node)
+    {
+        throw LogicError("One of the children of a DecoratorNode or ControlNode is nulltr");
+    }
+
+    if(visitor(node)) {
+        return;
+    }
+
+    if (auto control = dynamic_cast<BT::ControlNode*>(node))
+    {
+        for (const auto& child : control->children())
+        {
+            applyRecursiveVisitorSelectively(child, visitor);
+        }
+    }
+    else if (auto decorator = dynamic_cast<BT::DecoratorNode*>(node))
+    {
+        applyRecursiveVisitorSelectively(decorator->child(), visitor);
+    }
+}
+
+
 void applyRecursiveVisitor(const TreeNode* node,
                            const std::function<void(const TreeNode*)>& visitor)
 {
     if (!node)
     {
-        throw LogicError("One of the children of a DecoratorNode or ControlNode is nullptr");
+        throw LogicError("One of the children of a DecoratorNode or ControlNode is nulltr");
     }
 
     visitor(node);
@@ -42,7 +92,7 @@ void applyRecursiveVisitor(TreeNode* node, const std::function<void(TreeNode*)>&
 {
     if (!node)
     {
-        throw LogicError("One of the children of a DecoratorNode or ControlNode is nullptr");
+        throw LogicError("One of the children of a DecoratorNode or ControlNode is nulltr");
     }
 
     visitor(node);
@@ -74,7 +124,7 @@ void printTreeRecursively(const TreeNode* root_node)
             std::cout << "!nullptr!" << std::endl;
             return;
         }
-        std::cout << node->name() << std::endl;
+        std::cout << node->short_description() << std::endl;
         indent++;
 
         if (auto control = dynamic_cast<const BT::ControlNode*>(node))
@@ -95,6 +145,37 @@ void printTreeRecursively(const TreeNode* root_node)
     std::cout << "----------------" << std::endl;
 }
 
+void findTreeNodeRecursively(unsigned indent, const TreeNode* node, const std::function<bool(const TreeNode*)>& name_checker){
+
+    for (unsigned i = 0; i < indent; i++)
+    {
+        std::cout << "   ";
+    }
+    if (!node)
+    {
+        std::cout << "!nullptr!" << std::endl;
+        return;
+    }
+
+    indent++;
+
+    if(name_checker(node)){
+        return;
+    }
+
+    if (auto control = dynamic_cast<const BT::ControlNode*>(node))
+    {
+        for (const auto& child : control->children())
+        {
+            findTreeNodeRecursively(indent, child, name_checker);
+        }
+    }
+    else if (auto decorator = dynamic_cast<const BT::DecoratorNode*>(node))
+    {
+        findTreeNodeRecursively(indent, decorator->child(), name_checker);
+    }
+
+}
 void buildSerializedStatusSnapshot(TreeNode* root_node, SerializedTreeStatus& serialized_buffer)
 {
     serialized_buffer.clear();
@@ -104,6 +185,17 @@ void buildSerializedStatusSnapshot(TreeNode* root_node, SerializedTreeStatus& se
             std::make_pair(node->UID(), static_cast<uint8_t>(node->status())));
     };
 
+    applyRecursiveVisitor(root_node, visitor);
+}
+
+void haltAllActions(TreeNode* root_node)
+{
+    auto visitor = [](TreeNode* node) {
+        if (auto action = dynamic_cast<AsyncActionNode*>(node))
+        {
+            action->stopAndJoinThread();
+        }
+    };
     applyRecursiveVisitor(root_node, visitor);
 }
 

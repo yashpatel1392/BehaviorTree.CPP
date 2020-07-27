@@ -1,5 +1,5 @@
 /* Copyright (C) 2015-2018 Michele Colledanchise -  All Rights Reserved
- * Copyright (C) 2018-2020 Davide Faconti, Eurecat -  All Rights Reserved
+ * Copyright (C) 2018-2019 Davide Faconti, Eurecat -  All Rights Reserved
 *
 *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 *   to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -22,11 +22,14 @@ static uint16_t getUID()
     return uid++;
 }
 
+DoNothing doNothing;
+
 TreeNode::TreeNode(std::string name, NodeConfiguration config)
   : name_(std::move(name)),
     status_(NodeStatus::IDLE),
     uid_(getUID()),
-    config_(std::move(config))
+    config_(std::move(config)),
+    doNothing_(doNothing)
 {
 }
 
@@ -99,19 +102,6 @@ const std::string& TreeNode::registrationName() const
 const NodeConfiguration &TreeNode::config() const
 {
     return config_;
-}
-
-StringView TreeNode::getRawPortValue(const std::string& key) const
-{
-  auto remap_it = config_.input_ports.find(key);
-  if (remap_it == config_.input_ports.end())
-  {
-    throw std::logic_error(StrCat("getInput() failed because "
-      "NodeConfiguration::input_ports "
-      "does not contain the key: [",
-      key, "]"));
-  }
-  return remap_it->second;
 }
 
 bool TreeNode::isBlackboardPointer(StringView str)

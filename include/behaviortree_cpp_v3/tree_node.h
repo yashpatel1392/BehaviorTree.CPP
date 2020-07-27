@@ -1,5 +1,5 @@
 /* Copyright (C) 2015-2018 Michele Colledanchise -  All Rights Reserved
-*  Copyright (C) 2018-2020 Davide Faconti, Eurecat -  All Rights Reserved
+*  Copyright (C) 2018-2019 Davide Faconti, Eurecat -  All Rights Reserved
 *
 *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 *   to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -49,6 +49,13 @@ struct NodeConfiguration
     PortsRemapping output_ports;
 };
 
+///adding a custom which is doing nothing
+class DoNothing{
+public:
+    DoNothing(){
+    }
+};
+
 /// Abstract base class for Behavior Tree Nodes
 class TreeNode
 {
@@ -79,6 +86,8 @@ class TreeNode
     bool isHalted() const;
 
     NodeStatus status() const;
+
+    void setStatus(NodeStatus new_status);
 
     /// Name of the instance, not the type
     const std::string& name() const;
@@ -138,10 +147,6 @@ class TreeNode
     template <typename T>
     Result setOutput(const std::string& key, const T& value);
 
-    // function provide mostrly for debugging purpose to see the raw value
-    // in the port (no remapping and no conversion to a type)
-    StringView getRawPortValue(const std::string &key) const;
-
     /// Check a string and return true if it matches either one of these
     /// two patterns:  {...} or ${...}
     static bool isBlackboardPointer(StringView str);
@@ -150,14 +155,27 @@ class TreeNode
 
     static Optional<StringView> getRemappedKey(StringView port_name, StringView remapping_value);
 
+    void setParent(TreeNode *parent) {
+        parent_ = parent;
+    }
+
+    TreeNode* getParent() {
+        return parent_;
+    }
+
+    std::string short_description() const {
+        std::string str = name();
+        if (str.empty()) {
+            str = registration_ID_;
+        }
+        return str;
+    }
+
   protected:
     /// Method to be implemented by the user
     virtual BT::NodeStatus tick() = 0;
 
     friend class BehaviorTreeFactory;
-    friend class DecoratorNode;
-    friend class ControlNode;
-    friend class Tree;
 
     // Only BehaviorTreeFactory should call this
     void setRegistrationID(StringView ID)
@@ -167,10 +185,10 @@ class TreeNode
 
     void modifyPortsRemapping(const PortsRemapping& new_remapping);
 
-    void setStatus(NodeStatus new_status);
-
   private:
     const std::string name_;
+
+    TreeNode *parent_;
 
     NodeStatus status_;
 
@@ -185,6 +203,8 @@ class TreeNode
     NodeConfiguration config_;
 
     std::string registration_ID_;
+
+    DoNothing doNothing_;
 };
 
 //-------------------------------------------------------
@@ -215,7 +235,7 @@ inline Result TreeNode::getInput(const std::string& key, T& destination) const
                                            "but BB is invalid");
         }
 
-        const Any* val = config_.blackboard->getAny(static_cast<std::string>(remapped_key));
+        const Any* val = config_.blackboard->getAny(remapped_key.to_string());
         if (val && val->empty() == false)
         {
             if (std::is_same<T, std::string>::value == false && val->type() == typeid(std::string))
@@ -265,7 +285,9 @@ inline Result TreeNode::setOutput(const std::string& key, const T& value)
     {
         remapped_key = stripBlackboardPointer(remapped_key);
     }
-    config_.blackboard->set(static_cast<std::string>(remapped_key), value);
+    const auto& key_str = remapped_key.to_string();
+
+    config_.blackboard->set(key_str, value);
 
     return {};
 }

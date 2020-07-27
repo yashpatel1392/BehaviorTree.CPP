@@ -1,4 +1,4 @@
-/*  Copyright (C) 2018-2020 Davide Faconti, Eurecat -  All Rights Reserved
+/*  Copyright (C) 2018-2019 Davide Faconti, Eurecat -  All Rights Reserved
 *
 *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 *   to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -14,11 +14,6 @@
 #include "behaviortree_cpp_v3/utils/shared_library.h"
 #include "behaviortree_cpp_v3/xml_parsing.h"
 
-#ifdef USING_ROS
-#include "filesystem/path.h"
-#include <ros/package.h>
-#endif
-
 namespace BT
 {
 BehaviorTreeFactory::BehaviorTreeFactory()
@@ -29,12 +24,9 @@ BehaviorTreeFactory::BehaviorTreeFactory()
     registerNodeType<ParallelNode>("Parallel");
     registerNodeType<ReactiveSequence>("ReactiveSequence");
     registerNodeType<ReactiveFallback>("ReactiveFallback");
-    registerNodeType<IfThenElseNode>("IfThenElse");
-    registerNodeType<WhileDoElseNode>("WhileDoElse");
 
     registerNodeType<InverterNode>("Inverter");
     registerNodeType<RetryNode>("RetryUntilSuccesful");
-    registerNodeType<KeepRunningUntilFailureNode>("KeepRunningUntilFailure");
     registerNodeType<RepeatNode>("Repeat");
     registerNodeType<TimeoutNode>("Timeout");
 
@@ -45,22 +37,12 @@ BehaviorTreeFactory::BehaviorTreeFactory()
     registerNodeType<AlwaysFailureNode>("AlwaysFailure");
     registerNodeType<SetBlackboard>("SetBlackboard");
 
-    registerNodeType<SubtreeNode>("SubTree");
-    registerNodeType<SubtreePlusNode>("SubTreePlus");
+    registerNodeType<DecoratorSubtreeNode>("SubTree");
 
     registerNodeType<BlackboardPreconditionNode<int>>("BlackboardCheckInt");
     registerNodeType<BlackboardPreconditionNode<double>>("BlackboardCheckDouble");
     registerNodeType<BlackboardPreconditionNode<std::string>>("BlackboardCheckString");
 
-    registerNodeType<SwitchNode<2>>("Switch2");
-    registerNodeType<SwitchNode<3>>("Switch3");
-    registerNodeType<SwitchNode<4>>("Switch4");
-    registerNodeType<SwitchNode<5>>("Switch5");
-    registerNodeType<SwitchNode<6>>("Switch6");
-
-#ifdef NCURSES_FOUND
-    registerNodeType<ManualSelectorNode>("ManualSelector");
-#endif
     for( const auto& it: builders_)
     {
         builtin_IDs_.insert( it.first );
@@ -96,6 +78,17 @@ void BehaviorTreeFactory::registerBuilder(const TreeNodeManifest& manifest, cons
 }
 
 void BehaviorTreeFactory::registerSimpleCondition(const std::string& ID,
+                                                  const std::function<bool(TreeNode&)>& tick_bool_functor,
+                                                  PortsList ports)
+{
+    auto tick_functor = [tick_bool_functor](TreeNode& parent_node) -> NodeStatus {
+        return tick_bool_functor(parent_node) ? NodeStatus::SUCCESS : NodeStatus::FAILURE;
+    };
+
+    registerSimpleAction(ID, tick_functor, ports);
+}
+
+void BehaviorTreeFactory::registerSimpleCondition(const std::string& ID,
                                                   const SimpleConditionNode::TickFunctor& tick_functor,
                                                   PortsList ports)
 {
@@ -105,6 +98,17 @@ void BehaviorTreeFactory::registerSimpleCondition(const std::string& ID,
 
     TreeNodeManifest manifest = { NodeType::CONDITION, ID, std::move(ports) };
     registerBuilder(manifest, builder);
+}
+
+void BehaviorTreeFactory::registerSimpleAction(const std::string& ID,
+                                               const std::function<bool(TreeNode&)>& tick_bool_functor,
+                                               PortsList ports)
+{
+    auto tick_functor = [tick_bool_functor](TreeNode& parent_node) -> NodeStatus {
+        return tick_bool_functor(parent_node) ? NodeStatus::SUCCESS : NodeStatus::FAILURE;
+    };
+
+    registerSimpleAction(ID, tick_functor, ports);
 }
 
 void BehaviorTreeFactory::registerSimpleAction(const std::string& ID,
@@ -148,66 +152,6 @@ void BehaviorTreeFactory::registerFromPlugin(const std::string& file_path)
                   << PLUGIN_SYMBOL << "]" << std::endl;
     }
 }
-
-#ifdef USING_ROS
-
-    #ifdef _WIN32
-const char os_pathsep(';');   // NOLINT
-#else
-const char os_pathsep(':');   // NOLINT
-#endif
-
-// This function is a copy from the one in class_loader_imp.hpp in ROS pluginlib
-// package, licensed under BSD.
-// https://github.com/ros/pluginlib
-std::vector<std::string> getCatkinLibraryPaths()
-{
-    std::vector<std::string> lib_paths;
-    const char* env = std::getenv("CMAKE_PREFIX_PATH");
-    if (env)
-    {
-        const std::string env_catkin_prefix_paths(env);
-        std::vector<BT::StringView> catkin_prefix_paths =
-            splitString(env_catkin_prefix_paths, os_pathsep);
-        for (BT::StringView catkin_prefix_path : catkin_prefix_paths)
-        {
-            filesystem::path path(static_cast<std::string>(catkin_prefix_path));
-            filesystem::path lib("lib");
-            lib_paths.push_back((path / lib).str());
-        }
-    }
-    return lib_paths;
-}
-
-void BehaviorTreeFactory::registerFromROSPlugins()
-{
-    std::vector<std::string> plugins;
-    ros::package::getPlugins("behaviortree_cpp", "bt_lib_plugin", plugins, true);
-    std::vector<std::string> catkin_lib_paths = getCatkinLibraryPaths();
-
-    for (const auto& plugin : plugins)
-    {
-        auto filename = filesystem::path(plugin + BT::SharedLibrary::suffix());
-        for (const auto& lib_path : catkin_lib_paths)
-        {
-            const auto full_path = filesystem::path(lib_path) / filename;
-            if (full_path.exists())
-            {
-                std::cout << "Registering ROS plugins from " << full_path.str() << std::endl;
-                registerFromPlugin(full_path.str());
-                break;
-            }
-        }
-    }
-}
-#else
-
-    void BehaviorTreeFactory::registerFromROSPlugins()
-    {
-        throw RuntimeError("Using attribute [ros_pkg] in <include>, but this library was compiled "
-                           "without ROS support. Recompile the BehaviorTree.CPP using catkin");
-    }
-#endif
 
 std::unique_ptr<TreeNode> BehaviorTreeFactory::instantiateTreeNode(
         const std::string& name,
@@ -267,7 +211,9 @@ Tree BehaviorTreeFactory::createTreeFromFile(const std::string &file_path,
 
 Tree::~Tree()
 {
-    haltTree();
+    if (root_node) {
+        haltAllActions(root_node);
+    }
 }
 
 Blackboard::Ptr Tree::rootBlackboard()

@@ -183,11 +183,9 @@ class Blackboard
 
     const PortInfo *portInfo(const std::string& key);
 
-    void addSubtreeRemapping(StringView internal, StringView external);
+    void addSubtreeRemapping(std::string internal, std::string external);
 
     void debugMessage() const;
-
-    std::vector<StringView> getKeys() const;
 
   private:
 
